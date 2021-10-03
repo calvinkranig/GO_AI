@@ -60,7 +60,28 @@ class Board():
       opposite_color_str.remove_liberty(point)
       if opposite_color_str.num_liberties == 0:
         self._remove_string(opposite_color_str)
+
+class GameState():
+  def __init__(self, board, next_player, previous, move):
+    self.board = board
+    self.next_player = next_player
+    self.previous_state = previous
+    self.last_move = move
     
+  def apply_move(self, move):
+    if move.is_play:
+      next_board = copy.deepcopy(self.board)
+      next_board.place_stone(self.next_player, move.point)
+    else:
+      next_board = self.board
+    return GameState(next_board, self.next_player.other, self, move)
+  
+  @classmethod
+  def new_game(cls, board_size):
+    if isinstance(board_size, int):
+      board_size = (board_size, board_size)
+    board = Board(*board_size)
+    return GameState(board, Player.black, None, None)
 
 class GoString():
   def __init__(self, color, stones, liberties):
