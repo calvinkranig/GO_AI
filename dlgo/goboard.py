@@ -1,6 +1,6 @@
 import copy
-from dlgo.gotypes import Player
-from dlgo import zobrist
+from gotypes import Player
+import zobrist
 
 class Board():
   def __init__(self, num_rows, num_cols):
@@ -43,7 +43,7 @@ class Board():
     assert self._grid.get(point) is None
     adj_same_color = []
     adj_opposite_color = []
-    liberties = {}
+    liberties = set()
     
     for neighbor in point.neighbors():
       if self.is_on_grid(neighbor):
@@ -155,11 +155,11 @@ class GoString():
 
   def merged_with(self, go_string):
     assert go_string.color == self.color
-    combined_stones = self.stones or go_string.stones
+    combined_stones = self.stones | go_string.stones
     return GoString(
       self.color,
       combined_stones,
-      (self.liberties or go_string.liberties) - combined_stones
+      (self.liberties | go_string.liberties) - combined_stones
     )
   
   def with_liberty(self, point):
@@ -175,6 +175,9 @@ class GoString():
     self.color == other.color and \
     self.stones == other.stones and \
     self.liberties == other.liberties
+    
+  def __deepcopy__(self, memodict={}):
+    return GoString(self.color, self.stones, copy.deepcopy(self.liberties))
 
 class Move():
   def __init__(self, point=None, is_pass=False, is_resign=False):
