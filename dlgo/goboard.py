@@ -36,13 +36,13 @@ class Board():
     assert self._grid.get(point) is None
     adj_same_color = []
     adj_opposite_color = []
-    liberties = []
+    liberties = {}
     
     for neighbor in point.neighbors():
       if self.is_on_grid(neighbor):
         neighbor_str = self._grid.get(neighbor)
         if neighbor_str is None:
-          liberties.append(neighbor)
+          liberties.add(neighbor)
         elif (neighbor_str.color == player
           and neighbor_str not in adj_same_color):
           adj_same_color.append(neighbor_str)
@@ -50,7 +50,7 @@ class Board():
         #neighbor_str is opposing color and not in list of opposite strings
           adj_opposite_color.append(neighbor_str)
             
-    new_str = GoString(player, [point], liberties)
+    new_str = GoString(player, {point}, liberties)
     
     for same_color_str in adj_same_color:
       new_str = new_str.merged_with(same_color_str)
@@ -129,14 +129,12 @@ class GameState():
 class GoString():
   def __init__(self, color, stones, liberties):
     self.color = color
-    self.stones = stones
-    self.liberties = liberties
-
-  def remove_liberty(self, point):
-    self.liberties.remove(point)
-
-  def add_liberty(self, point):
-    self.liberties.add(point)
+    self.stones = frozenset(stones)
+    self.liberties = frozenset(liberties)
+    
+  @property
+  def num_liberties(self):
+    return len(self.liberties)
 
   def merged_with(self, go_string):
     assert go_string.color == self.color
@@ -146,10 +144,14 @@ class GoString():
       combined_stones,
       (self.liberties or go_string.liberties) - combined_stones
     )
+    
+  def without_liberty(self, point):
+    new_liberties = self.liberties - {point}
+    return GoString(self.color, self.stones, new_liberties)
 
-  @property
-  def num_liberties(self):
-    return len(self.liberties)
+  def with_liberty(self, point):
+    new_liberties = self.liberties | {point}
+    return GoString(self.color, self.stones, new_liberties)
 
   def __eq__(self,other):
     return isinstance(other, GoString) and \
