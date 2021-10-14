@@ -1,18 +1,20 @@
 import copy
 from dlgo.gotypes import Player
+from dlgo import zobrist
 
 class Board():
   def __init__(self, num_rows, num_cols):
     self.num_rows = num_rows
     self.num_cols = num_cols
     self._grid = {}
+    self._hash = zobrist.EMPTY_BOARD
     
   def _remove_string(self, string):
     for point in string.stones:
       for neighbor in point.neighbors():
         neighbor_str = self._grid.get(neighbor)
         if neighbor_str is not None and neighbor_str is not string:
-          neighbor_str.add_liberty(point)
+          neighbor_str.with_liberty(point)
       self._grid[point] = None
 
   def is_on_grid(self, point):
@@ -57,7 +59,7 @@ class Board():
     for new_str_point in new_str.stones:
       self._grid[new_str_point] = new_str
     for opposite_color_str in adj_opposite_color:
-      opposite_color_str.remove_liberty(point)
+      opposite_color_str.without_liberty(point)
       if opposite_color_str.num_liberties == 0:
         self._remove_string(opposite_color_str)
 
@@ -144,13 +146,13 @@ class GoString():
       combined_stones,
       (self.liberties or go_string.liberties) - combined_stones
     )
+  
+  def with_liberty(self, point):
+    new_liberties = self.liberties | {point}
+    return GoString(self.color, self.stones, new_liberties)
     
   def without_liberty(self, point):
     new_liberties = self.liberties - {point}
-    return GoString(self.color, self.stones, new_liberties)
-
-  def with_liberty(self, point):
-    new_liberties = self.liberties | {point}
     return GoString(self.color, self.stones, new_liberties)
 
   def __eq__(self,other):
