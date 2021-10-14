@@ -48,7 +48,7 @@ class Board():
           adj_same_color.append(neighbor_str)
         elif neighbor_str not in adj_opposite_color:
         #neighbor_str is opposing color and not in list of opposite strings
-            adj_opposite_color.append(neighbor_str)
+          adj_opposite_color.append(neighbor_str)
             
     new_str = GoString(player, [point], liberties)
     
@@ -77,7 +77,7 @@ class GameState():
     if isinstance(board_size, int):
       board_size = (board_size, board_size)
     board = Board(*board_size)
-    return GameState(board, Player.black, None, None)
+    return GameState(board, Player.BLACK, None, None)
     
   def apply_move(self, move):
     if move.is_play:
@@ -140,11 +140,11 @@ class GoString():
 
   def merged_with(self, go_string):
     assert go_string.color == self.color
-    combined_stones = self.stones | go_strings.stones
+    combined_stones = self.stones or go_string.stones
     return GoString(
       self.color,
       combined_stones,
-      (self.liberties | go_string.liberties) - combined_stones
+      (self.liberties or go_string.liberties) - combined_stones
     )
 
   @property
