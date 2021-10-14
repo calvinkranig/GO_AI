@@ -3,11 +3,11 @@ from collections import namedtuple
 
 class Player(enum.Enum):
     BLACK = 1
-    WHITE - 2
+    WHITE = 2
 
     @property
     def other(self):
-            return Player.BLACK if self == Player.WHITE else Player.WHITE
+      return Player.BLACK if self == Player.WHITE else Player.WHITE
 
 class Point(namedtuple('Point', 'row col')):
     def neighbors(self):
