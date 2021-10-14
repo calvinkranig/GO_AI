@@ -8,14 +8,19 @@ class Board():
     self.num_cols = num_cols
     self._grid = {}
     self._hash = zobrist.EMPTY_BOARD
-    
+  
+  def _replace_string(self, new_str):
+    for point in new_str.stones:
+      self._grid[point] = new_str
+      
   def _remove_string(self, string):
     for point in string.stones:
       for neighbor in point.neighbors():
         neighbor_str = self._grid.get(neighbor)
         if neighbor_str is not None and neighbor_str is not string:
-          neighbor_str.with_liberty(point)
-      self._grid[point] = None
+          self._replace_string(neighbor_str.with_liberty(point))
+      self._grid[point] = None 
+      self._hash ^= zobrist.HASH_CODE[point, string.color]
 
   def is_on_grid(self, point):
     return (1 <= point.row <= self.num_rows
@@ -51,23 +56,38 @@ class Board():
         elif neighbor_str not in adj_opposite_color:
         #neighbor_str is opposing color and not in list of opposite strings
           adj_opposite_color.append(neighbor_str)
-            
+
     new_str = GoString(player, {point}, liberties)
     
     for same_color_str in adj_same_color:
       new_str = new_str.merged_with(same_color_str)
     for new_str_point in new_str.stones:
       self._grid[new_str_point] = new_str
-    for opposite_color_str in adj_opposite_color:
-      opposite_color_str.without_liberty(point)
-      if opposite_color_str.num_liberties == 0:
-        self._remove_string(opposite_color_str)
+      
+    self._hash^= zobrist.HASH_CODE[point, player]
+    
+    for other_color_str in adj_opposite_color:
+      replacement = other_color_str.without_liberty(point)
+      if replacement.num_liberties > 0:
+        self._replace_string(other_color_str.without_liberty(point))
+      else:
+        self._remove_string(other_color_str)
+
+  def zobrist_hash(self):
+    return self._hash
 
 class GameState():
   def __init__(self, board, next_player, previous, move):
     self.board = board
     self.next_player = next_player
     self.previous_state = previous
+    if self.previous_state is None:
+      self.previous_states = frozenset()
+    else:
+      self.previous_states = frozenset(
+        previous.previous_states |
+        {(previous.next_player, previous.board.zobrist_hash())}
+      )
     self.last_move = move
   
   @property
@@ -91,16 +111,11 @@ class GameState():
     
   def does_move_violate_ko(self, player, move):
     if not move.is_play:
-      return False
+        return False
     next_board = copy.deepcopy(self.board)
     next_board.place_stone(player, move.point)
-    next_situation = (player.other, next_board)
-    past_state = self.previous_state
-    while past_state is not None:
-      if past_state.situation == next_situation:
-        return True
-      past_state = past_state.previous_state
-    return False
+    next_situation = (player.other, next_board.zobrist_hash())
+    return next_situation in self.previous_states
     
   def is_move_self_capture(self, player, move):
     if not move.is_play:
